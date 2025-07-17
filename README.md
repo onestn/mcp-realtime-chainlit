@@ -22,6 +22,7 @@ The project consists of three main components:
 
 - Python 3.11+
 - Node.js and npm (for the MCP server)
+- uv package manager for Python
 - Azure OpenAI API access with realtime capabilities
 
 ## Installation
@@ -32,9 +33,14 @@ The project consists of three main components:
    cd mcp-realtime-chainlit
    ```
 
-2. Install Python dependencies:
+2. Install Python dependencies using uv (modern Python package manager):
    ```bash
-   pip install -r requirements.txt
+   uv sync
+   ```
+   
+   Note: If you don't have uv installed, install it first:
+   ```bash
+   curl -sSf https://install.ultraviolet.rs | sh
    ```
 
 3. Create a `.env` file with your Azure OpenAI credentials:
