@@ -1,6 +1,0 @@
-chainlit==2.6.2
-python-dotenv==1.0.1
-azure-identity==1.19.0
-websockets==14.0
-invoke==2.2.0
-numpy==1.26.4

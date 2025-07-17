@@ -1,70 +1,111 @@
-# Chainlit Realtime MCP
+# MCP Realtime Airbnb Chatbot
 
-A Chainlit application that combines OpenAI's Realtime API with Model Context Protocol (MCP) integration for building voice-based AI assistants.
+This project implements a real-time chatbot that provides Airbnb information using Model Context Protocol (MCP) and OpenAI's realtime API. The chatbot supports both text and audio interactions through a Chainlit web interface.
 
 ## Features
 
-- Voice-based conversations via OpenAI's Realtime API
-- Tool integration through Model Context Protocol (MCP)
-- Multi-language support (English, Korean)
-- Streaming transcript and audio response
+- **Multi-modal Interaction**: Support for both text input and voice conversations
+- **Real-time Audio Processing**: Audio streaming for natural conversation flow
+- **Model Context Protocol (MCP) Integration**: Connects to external MCP services for Airbnb data
+- **Internationalization**: Supports multiple languages (currently English and Korean)
+- **Azure OpenAI Integration**: Uses Azure OpenAI's Realtime API for streaming responses
+
+## Architecture
+
+The project consists of three main components:
+
+1. **MCP Service**: Manages connection to MCP servers that provide Airbnb data
+2. **Realtime Client**: Handles WebSocket communication with OpenAI's realtime API
+3. **Chainlit Interface**: Provides the user-facing chat interface with audio support
+
+## Prerequisites
+
+- Python 3.11+
+- Node.js and npm (for the MCP server)
+- Azure OpenAI API access with realtime capabilities
 
 ## Installation
 
-1. Clone the repository
-2. Install dependencies:
+1. Clone the repository:
+   ```bash
+   git clone <repository-url>
+   cd mcp-realtime-chainlit
+   ```
+
+2. Install Python dependencies:
    ```bash
    pip install -r requirements.txt
    ```
-   Or use uv:
-   ```bash
-   uv pip install -e .
+
+3. Create a `.env` file with your Azure OpenAI credentials:
+   ```
+   AZURE_OPENAI_API_KEY=your_api_key
+   AZURE_OPENAI_ENDPOINT=your_endpoint
+   AZURE_OPENAI_DEPLOYMENT=your_deployment_name
    ```
 
-## Configuration
+## Usage
 
-1. Copy `.env.sample` to `.env` and fill in the required environment variables:
-   ```
-   AZURE_OPENAI_ENDPOINT=wss://<RESOURCE>.openai.azure.com
-   AZURE_OPENAI_DEPLOYMENT=gpt-4o-realtime-preview
-   AZURE_OPENAI_API_KEY=<leave empty if you want to use Entra ID Authn, RECOMMENDED>
-   ```
-
-2. Language settings are configured in `chainlit_config.py`. The application currently supports:
-   - English (en) - default
-   - Korean (ko)
-
-## Running the Application
-
-Start the Chainlit application with:
+Start the application:
 
 ```bash
 chainlit run chat.py
 ```
 
+This will launch the Chainlit web interface, typically accessible at http://localhost:8000.
+
+### Interacting with the Chatbot
+
+- **Text Mode**: Type questions about Airbnb listings, pricing, locations, etc.
+- **Voice Mode**: Click the microphone button to start speaking, and the system will process your audio input
+
 ## Project Structure
 
-- `chat.py` - Main Chainlit application
-- `realtime.py` - OpenAI Realtime API client
-- `mcp_service.py` - Model Context Protocol service
-- `assistant_service.py` - Assistant service for agent-based conversations
-- `chainlit_config.py` - Chainlit configuration including translations
-- `locales/` - Translation files for internationalization
-  - `en/` - English translations
-  - `ko/` - Korean translations
+- `mcp_service.py`: Implements the MCP service client for communicating with MCP servers
+- `realtime.py`: Manages WebSocket connections to the OpenAI realtime API
+- `chat.py`: Chainlit interface implementation with handlers for text and audio
+- `chainlit_config.py`: Configuration for internationalization
+- `locales/`: Translation files for different languages
 
-## Adding New Languages
+## How It Works
 
-To add a new language:
+1. The Chainlit application starts and establishes a connection to Azure OpenAI's realtime API
+2. The MCP service initializes and connects to the Airbnb MCP server
+3. When a user sends a message (text or audio):
+   - If text: The message is sent directly to the model
+   - If audio: The audio is streamed to the model for real-time transcription
+4. The model processes the input with access to Airbnb data through MCP tools
+5. Responses are streamed back to the user (text and/or audio)
 
-1. Create a new directory in `locales/` with the language code (e.g., `ja` for Japanese)
-2. Copy the `translation.json` from an existing language and translate all values
-3. Update `supported_languages` in `chainlit_config.py` to include the new language code
+## Internationalization
 
-## MCP Integration
+The application supports multiple languages. Currently implemented:
 
-The application includes MCP integration for tool calls. The default configuration includes:
+- English (en)
+- Korean (ko)
 
-- Airbnb MCP server for Airbnb-related functionalities
+Translation files are located in the `locales` directory.
 
-Additional MCP servers can be configured in `.vscode/settings.json` and `mcp_service.py`.
+## Development
+
+### Adding New MCP Tools
+
+To add a new MCP server:
+
+1. Add the server configuration to the `MCPService.initialize()` method
+2. Install the required npm package for the MCP server
+
+### Extending Language Support
+
+1. Add a new language code to the `supported_languages` list in `chainlit_config.py`
+2. Create a corresponding translation file in the `locales` directory
+
+## License
+
+[Specify your license here]
+
+## Acknowledgements
+
+- This project uses the [Chainlit](https://github.com/Chainlit/chainlit) framework for the chat interface
+- The realtime streaming implementation is derived from [openai-realtime-console](https://github.com/openai/openai-realtime-console)
+- Airbnb data is provided through [@openbnb/mcp-server-airbnb](https://www.npmjs.com/package/@openbnb/mcp-server-airbnb)
