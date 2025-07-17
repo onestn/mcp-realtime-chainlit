@@ -83,15 +83,6 @@ This will launch the Chainlit web interface, typically accessible at http://loca
 4. The model processes the input with access to Airbnb data through MCP tools
 5. Responses are streamed back to the user (text and/or audio)
 
-## Internationalization
-
-The application supports multiple languages. Currently implemented:
-
-- English (en)
-- Korean (ko)
-
-Translation files are located in the `locales` directory.
-
 ## Development
 
 ### Adding New MCP Tools
@@ -100,16 +91,9 @@ To add a new MCP server:
 
 1. Add the server configuration to the `MCPService.initialize()` method
 2. Install the required npm package for the MCP server
-
-### Extending Language Support
-
-1. Add a new language code to the `supported_languages` list in `chainlit_config.py`
-2. Create a corresponding translation file in the `locales` directory
-
 ## License
 
-[Specify your license here]
-
+MIT License (MIT)
 ## Acknowledgements
 
 - This project uses the [Chainlit](https://github.com/Chainlit/chainlit) framework for the chat interface
