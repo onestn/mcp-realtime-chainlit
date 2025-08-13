@@ -8,17 +8,19 @@ from realtime import RealtimeClient
 from dotenv import load_dotenv
 load_dotenv(override=True)
 
-# Load translations configuration
-try:
-    import chainlit_config  # noqa: F401 - Import needed for side effects
-    logger.info("Loaded chainlit_config for translations")
-except Exception as e:
-    logger.warning(f"Failed to load chainlit_config: {e}")
-
 async def setup_openai_realtime():
     """Instantiate and configure the OpenAI Realtime Client"""
+    
+
+    system_prompt = """
+        당신은 도움이 되는 AI 어시스턴트입니다. 
+        사용자의 질문에 정확하고 유용한 답변을 제공하세요.
+        한국어로 답변해주세요. 오디오를 사용해서 말할 수 있으므로 대화형에 맞게 응답하세요. Bullet이나 1. 2, 등의 형식을 피해주세요. 
+    """
+    
+    max_tokens = 4096  
              
-    openai_realtime = RealtimeClient(system_prompt = "")
+    openai_realtime = RealtimeClient(system_prompt=system_prompt, max_tokens=max_tokens)
     cl.user_session.set("track_id", str(uuid4()))
     # Initialize the flag to track input type (text vs audio)
     cl.user_session.set("is_text_input", True)

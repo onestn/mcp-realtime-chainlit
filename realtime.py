@@ -411,9 +411,10 @@ class RealtimeConversation:
 
 
 class RealtimeClient(RealtimeEventHandler):
-    def __init__(self, system_prompt: str):
+    def __init__(self, system_prompt: str = None, max_tokens: int = 4096):
         super().__init__()
-        self.system_prompt = system_prompt
+        self.system_prompt = system_prompt or "You are a helpful AI assistant. "
+        self.max_tokens = max_tokens
         self.default_session_config = {
             "modalities": ["text"],  # Start with text-only, will be changed dynamically based on input type
             "instructions": self.system_prompt,
@@ -425,7 +426,7 @@ class RealtimeClient(RealtimeEventHandler):
             "tools": [],
             "tool_choice": "auto",
             "temperature": 0.8,
-            "max_response_output_tokens": 4096,
+            "max_response_output_tokens": self.max_tokens,
         }
         self.session_config = {}
         self.transcription_models = [{"model": "whisper-1"}]
@@ -638,6 +639,33 @@ class RealtimeClient(RealtimeEventHandler):
         if self.realtime.is_connected():
             await self.realtime.send("session.update", {"session": session})
         return True
+    
+    async def update_system_prompt(self, system_prompt: str):
+        """Update the system prompt and session instructions"""
+        self.system_prompt = system_prompt
+        await self.update_session(instructions=system_prompt)
+        logger.info("System prompt updated")
+        
+    async def update_max_tokens(self, max_tokens: int):
+        """Update the maximum response tokens"""
+        self.max_tokens = max_tokens
+        await self.update_session(max_response_output_tokens=max_tokens)
+        logger.info(f"Max tokens updated to: {max_tokens}")
+    
+    async def update_config(self, system_prompt: str = None, max_tokens: int = None):
+        """Update both system prompt and max tokens if provided"""
+        updates = {}
+        if system_prompt is not None:
+            self.system_prompt = system_prompt
+            updates["instructions"] = system_prompt
+            
+        if max_tokens is not None:
+            self.max_tokens = max_tokens
+            updates["max_response_output_tokens"] = max_tokens
+            
+        if updates:
+            await self.update_session(**updates)
+            logger.info(f"Configuration updated - System prompt: {'✓' if system_prompt else '✗'}, Max tokens: {max_tokens if max_tokens else '✗'}")
     
     async def create_conversation_item(self, item):
         await self.realtime.send("conversation.item.create", {
