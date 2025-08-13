@@ -513,6 +513,8 @@ class RealtimeClient(RealtimeEventHandler):
             # Use MCP service to handle the tool call
             result = await self.mcp_service.get_tool_response(tool_name=tool_name, parameters=json_arguments, call_id=tool["call_id"])
             
+            logger.info(f"MCP function call completed: {tool_name} with arguments {json_arguments}")
+            
             # Send the result back to the conversation
             await self.realtime.send("conversation.item.create", {
                 "item": {
