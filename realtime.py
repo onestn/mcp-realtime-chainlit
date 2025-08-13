@@ -111,50 +111,81 @@ class RealtimeAPI(RealtimeEventHandler):
         logger.debug(f"[Websocket/{datetime.utcnow().isoformat()}] {message}")
 
     async def connect(self, model='gpt-4o-realtime-preview'):
-        if self.is_connected():
-            raise Exception("Already connected")
-        headers = {
-            "api-key": self.api_key
-        } if self.api_key != "" else {
-            'Authorization': f'Bearer {self.acquire_token()}'
-        }
-        self.ws = await websockets.connect(f"{self.url}/openai/realtime?api-version={self.api_version}&deployment={model}", additional_headers=headers)
-        self.log(f"Connected to {self.url}")
-        asyncio.create_task(self._receive_messages())
+        try:
+            if self.is_connected():
+                logger.warning("Already connected to RealtimeAPI")
+                raise Exception("Already connected")
+                
+            headers = {
+                "api-key": self.api_key
+            } if self.api_key != "" else {
+                'Authorization': f'Bearer {self.acquire_token()}'
+            }
+            
+            self.ws = await websockets.connect(f"{self.url}/openai/realtime?api-version={self.api_version}&deployment={model}", additional_headers=headers)
+            self.log(f"Connected to {self.url}")
+            asyncio.create_task(self._receive_messages())
+        except Exception as e:
+            logger.error(f"Error connecting to RealtimeAPI: {str(e)}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            raise e
 
     async def _receive_messages(self):
-        async for message in self.ws:
-            event = json.loads(message)
-            if event['type'] == "error":
-                logger.error("ERROR: %s", message)
-            self.log("received:", event)
-            self.dispatch(f"server.{event['type']}", event)
-            self.dispatch("server.*", event)
+        try:
+            async for message in self.ws:
+                event = json.loads(message)
+                if event['type'] == "error":
+                    logger.error("Received error from server: %s", message)
+                    
+                self.log("received:", event)
+                self.dispatch(f"server.{event['type']}", event)
+                self.dispatch("server.*", event)
+        except Exception as e:
+            logger.error(f"Error in _receive_messages: {str(e)}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            raise e
 
     async def send(self, event_name, data=None):
-        if not self.is_connected():
-            raise Exception("RealtimeAPI is not connected")
-        data = data or {}
-        if not isinstance(data, dict):
-            raise Exception("data must be a dictionary")
-        event = {
-            "event_id": self._generate_id("evt_"),
-            "type": event_name,
-            **data
-        }
-        self.dispatch(f"client.{event_name}", event)
-        self.dispatch("client.*", event)
-        self.log("sent:", event)
-        await self.ws.send(json.dumps(event))
+        try:
+            if not self.is_connected():
+                logger.error("Attempted to send event but not connected")
+                raise Exception("RealtimeAPI is not connected")
+                
+            data = data or {}
+            if not isinstance(data, dict):
+                raise Exception("data must be a dictionary")
+                
+            event = {
+                "event_id": self._generate_id("evt_"),
+                "type": event_name,
+                **data
+            }
+            
+            self.dispatch(f"client.{event_name}", event)
+            self.dispatch("client.*", event)
+            self.log("sent:", event)
+            
+            await self.ws.send(json.dumps(event))
+        except Exception as e:
+            logger.error(f"Error sending event {event_name}: {str(e)}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            raise e
 
     def _generate_id(self, prefix):
         return f"{prefix}{int(datetime.utcnow().timestamp() * 1000)}"
 
     async def disconnect(self):
-        if self.ws:
-            await self.ws.close()
-            self.ws = None
-            self.log(f"Disconnected from {self.url}")
+        try:
+            if self.ws:
+                await self.ws.close()
+                self.ws = None
+                self.log(f"Disconnected from {self.url}")
+            else:
+                logger.info("RealtimeAPI was already disconnected")
+        except Exception as e:
+            logger.error(f"Error disconnecting RealtimeAPI: {str(e)}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            raise e
 
 class RealtimeConversation:
     default_frequency = config.features.audio.sample_rate
@@ -384,7 +415,7 @@ class RealtimeClient(RealtimeEventHandler):
         super().__init__()
         self.system_prompt = system_prompt
         self.default_session_config = {
-            "modalities": ["text", "audio"],
+            "modalities": ["text"],  # Start with text-only, will be changed dynamically based on input type
             "instructions": self.system_prompt,
             "voice": "shimmer",
             "input_audio_format": "pcm16",
@@ -514,21 +545,33 @@ class RealtimeClient(RealtimeEventHandler):
         return True
 
     async def connect(self):
-        if self.is_connected():
-            raise Exception("Already connected, use .disconnect() first")
+        logger.info("RealtimeClient connecting...")
         
-        # Initialize MCP service
-        await self.mcp_service.initialize()
-        
-        await self.realtime.connect()
-        
-        # Get tools from MCP service
-        mcp_tools = self.mcp_service.get_tools_for_openai()
-        self.session_config.update({
-            "tools": mcp_tools,
-        })
-        await self.update_session()
-        return True
+        try:
+            if self.is_connected():
+                logger.warning("RealtimeClient already connected")
+                raise Exception("Already connected, use .disconnect() first")
+            
+            # Initialize MCP service
+            await self.mcp_service.initialize()
+            
+            await self.realtime.connect()
+            
+            # Get tools from MCP service
+            mcp_tools = self.mcp_service.get_tools_for_openai()
+            logger.info(f"Retrieved {len(mcp_tools)} MCP tools")
+            
+            self.session_config.update({
+                "tools": mcp_tools,
+            })
+            
+            await self.update_session()
+            logger.info("RealtimeClient connection completed successfully")
+            return True
+        except Exception as e:
+            logger.error(f"Error in RealtimeClient connect: {str(e)}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            raise e
 
     async def wait_for_session_created(self):
         if not self.is_connected():
@@ -538,12 +581,22 @@ class RealtimeClient(RealtimeEventHandler):
         return True
 
     async def disconnect(self):
-        self.session_created = False
-        self.conversation.clear()
-        if self.realtime.is_connected():
-            await self.realtime.disconnect()
-        # Shutdown MCP service
-        await self.mcp_service.shutdown()
+        logger.info("RealtimeClient disconnecting...")
+        
+        try:
+            self.session_created = False
+            self.conversation.clear()
+            
+            if self.realtime.is_connected():
+                await self.realtime.disconnect()
+            
+            # Shutdown MCP service
+            await self.mcp_service.shutdown()
+            logger.info("RealtimeClient disconnection completed")
+        except Exception as e:
+            logger.error(f"Error in RealtimeClient disconnect: {str(e)}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            raise e
 
     def get_turn_detection_type(self):
         return self.session_config.get("turn_detection", {}).get("type")
@@ -590,20 +643,27 @@ class RealtimeClient(RealtimeEventHandler):
         })
 
     async def send_user_message_content(self, content=[]):
-        if content:
-            for c in content:
-                if c["type"] == "input_audio":
-                    if isinstance(c["audio"], (bytes, bytearray)):
-                        c["audio"] = array_buffer_to_base64(c["audio"])
-            await self.realtime.send("conversation.item.create", {
-                "item": {
-                    "type": "message",
-                    "role": "user",
-                    "content": content,
-                }
-            })
-        await self.create_response()
-        return True
+        try:
+            if content:
+                for i, c in enumerate(content):
+                    if c["type"] == "input_audio":
+                        if isinstance(c["audio"], (bytes, bytearray)):
+                            c["audio"] = array_buffer_to_base64(c["audio"])
+                        
+                await self.realtime.send("conversation.item.create", {
+                    "item": {
+                        "type": "message",
+                        "role": "user",
+                        "content": content,
+                    }
+                })
+                
+            await self.create_response()
+            return True
+        except Exception as e:
+            logger.error(f"Error in send_user_message_content: {str(e)}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            raise e
 
     async def append_input_audio(self, array_buffer):
         if len(array_buffer) > 0:
@@ -614,12 +674,18 @@ class RealtimeClient(RealtimeEventHandler):
         return True
 
     async def create_response(self):
-        if self.get_turn_detection_type() is None and len(self.input_audio_buffer) > 0:
-            await self.realtime.send("input_audio_buffer.commit")
-            self.conversation.queue_input_audio(self.input_audio_buffer)
-            self.input_audio_buffer = bytearray()
-        await self.realtime.send("response.create")
-        return True
+        try:
+            if self.get_turn_detection_type() is None and len(self.input_audio_buffer) > 0:
+                await self.realtime.send("input_audio_buffer.commit")
+                self.conversation.queue_input_audio(self.input_audio_buffer)
+                self.input_audio_buffer = bytearray()
+                
+            await self.realtime.send("response.create")
+            return True
+        except Exception as e:
+            logger.error(f"Error in create_response: {str(e)}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            raise e
 
     async def cancel_response(self, id=None, sample_count=0):
         if not id:
