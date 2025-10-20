@@ -64,8 +64,6 @@ edit_message = true
 [UI]
 # Name of the assistant.
 name = "나만의 AI 에이전트"
-logo = "public/logo.png"
-favicon = "public/favicon.ico"
 
 # default_theme = "dark"
 
