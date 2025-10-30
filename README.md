@@ -36,6 +36,8 @@
 2. uv를 사용하여 Python 의존성을 설치합니다 (현대적인 Python 패키지 매니저):
    ```bash
    uv sync
+
+   source .venv/bin/activate
    ```
    
    참고: uv가 설치되어 있지 않다면, 먼저 설치하세요:
