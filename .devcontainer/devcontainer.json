@@ -18,18 +18,14 @@
         "ms-python.python",
         "ms-python.vscode-pylance",
         "ms-python.debugpy",
-        "charliermarsh.ruff",
         "ms-toolsai.jupyter"
       ],
       "settings": {
         "python.defaultInterpreterPath": "/usr/local/bin/python",
         "python.formatting.provider": "none",
-        "editor.formatOnSave": true,
+        "editor.formatOnSave": false,
         "editor.codeActionsOnSave": {
           "source.organizeImports": "explicit"
-        },
-        "[python]": {
-          "editor.defaultFormatter": "charliermarsh.ruff"
         }
       }
     }
